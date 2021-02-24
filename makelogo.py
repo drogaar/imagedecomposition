@@ -1,9 +1,15 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from PIL import Image, ImageDraw
+from itertools import permutations
+from collections import namedtuple
 
 img_shape = (200,100)
 
-def init():
+State = namedtuple('State', ['image', 'points'])
+st8 = State(image=Image.new('RGB', img_shape, color=(255,255,255)), points = init_state())
+
+def init_state():
     step = 10
 
     pointCoordinates = []
@@ -18,9 +24,17 @@ def init():
 
     return pointCoordinates
 
-def vectors():
-    
+def actions():
+    alpha = 20
+    line_width = 3
 
+    pairs = permutations(st8['points'], 2)
 
-img = np.zeros(img_shape + (3,), np.uint8)
-cv.line(img,(0,0),(511,511),(255,0,0),5)
+    def draw(pair):
+        img = st8['image'].copy()
+        drw = ImageDraw.Draw(img, 'RGBA')
+        drw.line(pair, fill = (0,0,0,alpha), width = line_width)
+        return img
+
+    actions = [lambda : draw(pair) for pair in pairs]
+    return actions
