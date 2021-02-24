@@ -6,8 +6,7 @@ from collections import namedtuple
 
 img_shape = (200,100)
 
-State = namedtuple('State', ['image', 'points'])
-st8 = State(image=Image.new('RGB', img_shape, color=(255,255,255)), points = init_state())
+state = {'image' : Image.new('RGB', img_shape, color=(255,255,255)), 'points' : init_state()}
 target = Image.open("drawing.png").convert('RGB')
 
 def init_state():
@@ -29,25 +28,56 @@ def actions():
     alpha = 50
     line_width = 5
 
-    pairs = permutations(st8.points, 2)
+    pairs = permutations(state['points'], 2)
+    pairs = [pair for pair in pairs if not (pair[0][0] in pair[1] or pair[0][1] in pair[1]) ]
 
     def draw(pair):
-        img = st8.image.copy()
+        img = state['image'].copy()
         drw = ImageDraw.Draw(img, 'RGBA')
         drw.line(pair, fill = (0,0,0,alpha), width = line_width)
         return img
 
-    actions = [lambda : draw(pair) for pair in pairs]
-    return actions
+    results = [draw(pair) for pair in pairs]
+    return results
+
+def array(image):
+    image = np.array(image, dtype=np.float32)
+    return image / 255.
 
 def compose_target():
-    def difference(img1, img2):
-        return np.sum(np.abs(np.asarray(img1) - np.asarray(img2)))
+    def score(target, result):
+        diff = array(target) - array(result)
+        return np.sum(np.where(diff<0, np.abs(diff), 1))
 
-    for i in range(10):
-        results = [action() for action in actions()]
-        differences = np.asarray([difference(result, target) for result in results])
-        st8.image = results[np.argmin(differences)]
+    for i in range(30):
+        results = actions()
+        differences = np.asarray([score(result, target) for result in results])
+        # print(differences, np.argmin(differences), np.min(differences), i)
+        print(i)
+        state['image'] = results[np.argmin(differences)]
+        # state['image'].show()
 
 compose_target()
-st8.image.show()
+state['image'].show()
+
+def score(target, result):
+    diff = array(target) - array(result)
+    return np.sum(np.where(diff<0, np.abs(diff), 1))#np.sum(np.abs(diff[diff<0]))*-1
+
+results = actions()
+list(results)[37].show()
+list(results)[300].show()
+
+score(target, results[37])
+score(target, results[300])
+
+diff = array(target) - array(results[37])
+len(diff[diff > 0.1])
+len(diff[diff < 0])
+x = np.where(diff<0, 1, 1)
+plt.imshow(x)
+
+diff2 = array(target) - array(results[300])
+len(diff2[diff2 > 0.1])
+len(diff2[diff2 < 0])
+plt.imshow(np.where(diff2<0, np.abs(diff2), 1))
