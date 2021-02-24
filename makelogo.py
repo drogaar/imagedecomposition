@@ -8,6 +8,7 @@ img_shape = (200,100)
 
 State = namedtuple('State', ['image', 'points'])
 st8 = State(image=Image.new('RGB', img_shape, color=(255,255,255)), points = init_state())
+target = Image.open("drawing.png").convert('RGB')
 
 def init_state():
     step = 10
@@ -25,16 +26,28 @@ def init_state():
     return pointCoordinates
 
 def actions():
-    alpha = 20
-    line_width = 3
+    alpha = 50
+    line_width = 5
 
-    pairs = permutations(st8['points'], 2)
+    pairs = permutations(st8.points, 2)
 
     def draw(pair):
-        img = st8['image'].copy()
+        img = st8.image.copy()
         drw = ImageDraw.Draw(img, 'RGBA')
         drw.line(pair, fill = (0,0,0,alpha), width = line_width)
         return img
 
     actions = [lambda : draw(pair) for pair in pairs]
     return actions
+
+def compose_target():
+    def difference(img1, img2):
+        return np.sum(np.abs(np.asarray(img1) - np.asarray(img2)))
+
+    for i in range(10):
+        results = [action() for action in actions()]
+        differences = np.asarray([difference(result, target) for result in results])
+        st8.image = results[np.argmin(differences)]
+
+compose_target()
+st8.image.show()
