@@ -25,8 +25,8 @@ def init_state():
     return pointCoordinates
 
 def actions():
-    alpha = 50
-    line_width = 5
+    alpha = 25
+    line_width = 3
 
     pairs = permutations(state['points'], 2)
     pairs = [pair for pair in pairs if not (pair[0][0] in pair[1] or pair[0][1] in pair[1]) ]
@@ -44,32 +44,71 @@ def array(image):
     image = np.array(image, dtype=np.float32)
     return image / 255.
 
+target = array(target)
 def compose_target():
     def score(target, result):
-        diff = array(target) - array(result)
-        return np.sum(np.where(diff<0, np.abs(diff), 1))
+        diff = array() - array(result)
+        # return np.sum(np.where(diff<0, np.abs(diff), 0))
+        return np.sum(np.abs(diff[diff<0]))#faster
 
-    for i in range(30):
+    for i in range(1000):
         results = actions()
-        differences = np.asarray([score(result, target) for result in results])
+
+        differences = np.asarray([score(target, result) for result in results])
         # print(differences, np.argmin(differences), np.min(differences), i)
-        print(i)
+        print(np.argmin(differences), i)
         state['image'] = results[np.argmin(differences)]
-        # state['image'].show()
+        if i % 25 == 0:
+            state['image'].show()
 
 compose_target()
 state['image'].show()
 
 def score(target, result):
     diff = array(target) - array(result)
-    return np.sum(np.where(diff<0, np.abs(diff), 1))#np.sum(np.abs(diff[diff<0]))*-1
+    # return np.sum(np.where(diff<0, np.abs(diff), 0))#np.sum(np.abs(diff[diff<0]))*-1
+    return np.sum(np.abs(diff[diff<0]))#faster
 
 results = actions()
 list(results)[37].show()
 list(results)[300].show()
+list(results)[295].show()
 
 score(target, results[37])
 score(target, results[300])
+score(target, results[295])
+
+def phist(arr):
+    diff = array(target) - array(arr)
+    select = np.where(diff<0, diff, 1)
+    plt.hist(np.mean(select, axis=-1))
+
+phist(results[300])
+phist(results[295])
+
+def test(arr):
+    diff = array(target) - array(arr)
+    plt.figure(figsize=(12,6))
+    # plt.subplot(1,2,1)
+    # plt.hist(diff[diff<0])
+    # plt.subplot(1,2,2)
+    diff = np.where(diff<0, abs(diff), 0)
+    amin, amax = (np.amin(diff), np.amax(diff))
+    normal = (diff - amin)/(amax-amin)
+    min, max = (np.amin(normal), np.amax(normal))
+    sample = plt.imshow(normal, cmap='gray')
+    print(amin, amax, min, max)
+
+test(results[300])
+test(results[295])
+diff = array(target) - array(results[300])
+plt.imshow(np.where(diff>0, np.abs(diff), 1))
+plt.imshow(np.where(diff<0, np.abs(diff), 1))
+plt.imshow(array(results[300]))
+plt.imshow(array(target))
+plt.imshow(array(target) - array(results[300]))
+test(results[300])
+test(results[295])
 
 diff = array(target) - array(results[37])
 len(diff[diff > 0.1])
